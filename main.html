@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ezGraph</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #ffffff;
+            color: #171717;
+            font-family: 'Open Sans', sans-serif;
+        }
+
+        .container {
+            background-color: #f1f1f1;
+            margin: 0 5vw;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px 0 #0000006b;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        .small {
+            font-size: .7rem;
+            font-weight: 400;
+        }
+        .row {
+            display: flex;
+            justify-content: space-between;
+        }
+        .col {
+
+        }
+        .m-space {
+            margin: 3px 0;
+        }
+
+        .danger {
+            color: #d10000;
+        }
+        
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="h1">EzGraph</div>
+            <div class="small">Because Mr. Dobb asked me to.</div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <div class="m-space">
+                    Create a Dataset:
+                    <input type="text" placeholder="Name" id="datasetLabel">
+                    <button id="datasetCreate">Create</button>    
+                </div>
+                <div class="m-space">
+                    Manage Datasets:
+                    <div id="datasetManage">
+                        <select id="datasetSelect"><option>(select)</option><option disabled></option></select>
+                        <button id="datasetRemove">Remove</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="m-space">
+                    Add an X-Label:
+                    <input type="text" placeholder="Label" id="xlabelContent">
+                    <button id="xlabelAdd">Add</button>
+                </div>
+                <div class="m-space">
+                    Manage X-Labels:
+                    <div id="xlabelManage">
+                        <select id="xlabelSelect"><option>(select)</option><option disabled></option></select>
+                        <button id="xlabelRemove">Remove</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                Select a Dataset: <select id="dataDsSelect"><option>(select)</option><option disabled></option></select>
+                <div class="m-space">
+                    Add Data:
+                    <input type="text" placeholder="Value" id="dataValue">
+                    <button id="dataAdd">Add</button>
+                </div>
+                <div class="m-space">
+                    Manage Data:
+                    <div id="dataManage">
+                        <select id="dataSelect"><option>(select)</option><option disabled></option></select>
+                        <button id="dataRemove">Remove</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Insert data into a line graph -->
+
+        </div>
+        <canvas id="chartContainer" style="height: 65vh; width: 100%;"></canvas>
+
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.2.0/chart.umd.js"
+        integrity="sha512-B51MzT4ksAo6Y0TcUpmvZnchoPYfIcHadIaFqV5OR5JAh6dneYAeYT1xIlaNHhhFAALd5FLDTWNt/fkxhwE/oQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+        const ctx = document.getElementById("chartContainer");
+        let cont = {
+            labels: [],
+            datasets: []
+        };
+
+        function exportChart() {
+            return `https://koda.life/ezchart?data=${encodeURIComponent(btoa(JSON.stringify(cont)))}`;
+        }
+        
+        const mainChart = new Chart(ctx, {
+            type: 'line',
+            data: cont,
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        document.querySelector("#datasetCreate").addEventListener("click", () => {
+            let label = document.querySelector("#datasetLabel").value;
+            if (label.length < 1) return alert("Please enter a label.");
+            if (cont.datasets.find((e) => e.label == label)) return alert("A dataset with that label already exists.");
+            
+            let ds = document.querySelectorAll("#dataDsSelect, #datasetSelect");
+            if (ds) {
+                ds.forEach(d => {
+                    let opt = document.createElement("option");
+                    opt.value = label;
+                    opt.innerText = label;
+                    d.appendChild(opt);
+                })
+            }
+
+            // when the user creates a dataset, 
+
+            cont.datasets.push({
+                label: label,
+                data: [],
+                borderWidth: 1
+            });
+            mainChart.update();
+        });
+
+        document.querySelector("#xlabelAdd").addEventListener("click", () => {
+            let label = document.querySelector("#xlabelContent").value;
+            if (label.length < 1) return alert("Please enter a label.");
+            cont.labels.push(label);
+            mainChart.update();
+        });
+
+        document.querySelector("#dataAdd").addEventListener("click", () => {
+            let ds = document.querySelector("#dataDsSelect").value;
+            let val = document.querySelector("#dataValue").value;
+            if (ds.length < 1) return alert("Please select a dataset.");
+            if (val.length < 1) return alert("Please enter a value.");
+            if (isNaN(val)) return alert("Please enter a number.");
+            let dataset = cont.datasets.find((e) => e.label == ds);
+            if (!dataset) return alert("Dataset not found.");
+            dataset.data.push(val);
+            mainChart.update();
+        })
+
+        document.querySelector("#datasetRemove").addEventListener("click", () => {
+            let ds = document.querySelector("#datasetSelect").value;
+            if (ds.length < 1) return alert("Please select a dataset.");
+            let dataset = cont.datasets.find((e) => e.label == ds);
+            if (!dataset) return alert("Dataset not found.");
+            let index = cont.datasets.indexOf(dataset);
+            cont.datasets.splice(index, 1);
+            mainChart.update();
+        });
+
+        window.addEventListener("DOMContentLoaded", () => {
+            const pUrl = new URLSearchParams(window.location.search);
+            const data = pUrl.get("data");
+
+            if (data) {
+                cont = JSON.parse(atob(data));
+                mainChart.data = cont;
+                mainChart.update();
+            }
+        })
+    </script>
+</body>
+
+</html>
